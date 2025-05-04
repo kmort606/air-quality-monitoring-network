@@ -1,3 +1,6 @@
+//module for loading and processing data from csv files containing station metadata and pollution measurements
+
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
@@ -8,6 +11,9 @@ use serde::Deserialize;
 use crate::station::Station;
 
 //function to read the station data csv file using serde
+//inputs: path to the csv file
+//outputs: result containing a vector of station objects or an error
+//uses serde deserialization to convert csv rows to station objects
 pub fn read_stations<P:AsRef<Path>>(path: P) -> Result<Vec<Station>, Box <dyn Error>> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
@@ -33,6 +39,7 @@ pub fn read_stations<P:AsRef<Path>>(path: P) -> Result<Vec<Station>, Box <dyn Er
 }
 
 //pollution measurement struct for deserialization
+//represents a single pollution measurement record from the csv
 #[derive(Debug, Deserialize)]
 struct PollutionMeasurement {
     #[serde(rename = "State Code")]
@@ -51,7 +58,10 @@ struct PollutionMeasurement {
     arithmetic_mean: Option<f64>,
 }
 
-//function to read the poltion data from csv using serde
+//function to read the pollution data from csv using serde
+//inputs: path to the csv file
+//outputs: result containing a hashmap of station id to pollution level or an error
+//focuses on pm2.5 measurements with consistent averaging periods
 pub fn read_pollution<P: AsRef<Path>>(path: P) -> Result<HashMap<String, f64>, Box<dyn Error>> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
@@ -59,7 +69,7 @@ pub fn read_pollution<P: AsRef<Path>>(path: P) -> Result<HashMap<String, f64>, B
     let mut pollution_data = HashMap::new();
     //next two lines:
     //focus on PM2.5 data, which is code 88101 (most important measure of air pollution, particulate matter of certain size)
-    //and getting the 24 hour block average measurments for consistancy
+    //and getting the 24 hour block average measurements for consistency
     let target_parameter = "88101";
     let target_duration = "24-HR BLK AVG";
 
@@ -67,11 +77,11 @@ pub fn read_pollution<P: AsRef<Path>>(path: P) -> Result<HashMap<String, f64>, B
     for result in csv_reader.deserialize::<PollutionMeasurement>() {
         match result {
             Ok(measurement) => {
-                //Check if this is a PM2.5 record with appropriate averaging time
+                //check if this is a PM2.5 record with appropriate averaging time
                 if measurement.parameter_code == target_parameter && 
                 measurement.sample_duration == target_duration {
                     
-                    //create a unique ID given a state, county, and site code
+                    // create a unique ID given a state, county, and site code
                     let id = format!("{}-{}-{}", 
                         measurement.state_code, 
                         measurement.county_code, 

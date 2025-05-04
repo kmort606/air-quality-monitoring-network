@@ -1,5 +1,10 @@
+//module for representing air quality monitoring stations and their attributes
+
+
 use serde::Deserialize;
 
+//represents an air quality monitoring station with its metadata and isolation metrics
+//used as nodes in the monitoring network graph
 #[derive(Debug, Deserialize)]
 pub struct Station {
     #[serde(rename = "State Code")]
@@ -31,7 +36,8 @@ pub struct Station {
 }
 
 impl Station {
-    // Generate a unique ID by combining state, county, and site codes
+    //generate a unique id by combining state, county, and site codes
+    //this creates a standard format used for consistent identification
     pub fn generate_id(&mut self) {
         self.id = format!("{}-{}-{}", self.state_code, self.county_code, self.site_number);
     }

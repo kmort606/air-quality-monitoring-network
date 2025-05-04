@@ -1,3 +1,6 @@
+//module for building and analyzing the graph structure of the air quality monitoring network
+
+
 use std::collections::{HashMap, HashSet};
 use std::cmp::Ordering;
 use crate::station::Station;
