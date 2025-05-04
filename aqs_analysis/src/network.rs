@@ -39,6 +39,15 @@ impl MonitoringNetwork {
         let c = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());   
         R * c
     }
+
+    // Quick distance approximation using Pythagorean theorem (in degrees)
+    // This is much faster than haversine and good for initial filtering
+    fn quick_distance_approx(&self, lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
+        let dlat = lat2 - lat1;
+        let dlon = lon2 - lon1;
+        (dlat * dlat + dlon * dlon).sqrt()
+    }
+
     //function to build adjacency list with all stations
     //node = station, edge = distance between two stations
     pub fn build_adjacency_list(&mut self) {
@@ -89,6 +98,17 @@ impl MonitoringNetwork {
                 
                 let station2 = &self.stations[&id2];
                 
+                // Use quick distance approximation first as a filter
+                let approx_dist = self.quick_distance_approx(
+                    station1.latitude, station1.longitude,
+                    station2.latitude, station2.longitude
+                );
+                
+                // Skip if approximate distance is too large
+                if approx_dist > 5.0 { // Roughly 500km at the equator
+                    continue;
+                }
+                
                 let distance = self.haversine_distance(
                     station1.latitude, station1.longitude,
                     station2.latitude, station2.longitude
@@ -105,6 +125,14 @@ impl MonitoringNetwork {
             
             // Store in adjacency list
             self.adjacency_list.insert(id1.clone(), distances);
+            
+            // Progress tracking
+            processed += 1;
+            if processed % 1000 == 0 {
+                println!("Processed {}/{} stations ({:.1}%)", 
+                         processed, station_count, 
+                         (processed as f64 / station_count as f64) * 100.0);
+            }
         }
     }
     //function to calculate average distance to k nearest neighbors, measured as isolation
